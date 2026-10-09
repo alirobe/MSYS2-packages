@@ -1,0 +1,59 @@
+# Experiment, not for upstream: build a few msys packages with LDFLAGS="-Wl,--dynamicbase" (the default this branch
+# sets in pacman/makepkg.conf) and check the resulting DLLs opt in to ASLR. Context: msys2/msys2-runtime#381.
+name: dynamicbase-test
+
+on:
+  push:
+    branches: [dynamicbase-default]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [libiconv, gettext]
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pacman
+            ${{ matrix.package }}
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MSYS
+          update: true
+          install: base-devel msys2-devel
+      - name: Use this branch's LDFLAGS default
+        run: |
+          sed -i "s/^LDFLAGS=.*/$(grep '^LDFLAGS=' pacman/makepkg.conf)/" /etc/makepkg.conf
+          grep '^LDFLAGS=' /etc/makepkg.conf
+      - name: Build
+        run: |
+          cd ${{ matrix.package }}
+          makepkg --noconfirm --skippgpcheck --nocheck --syncdeps
+          ls *.pkg.tar.*
+      - name: Extract DLLs
+        run: |
+          mkdir -p out
+          for p in ${{ matrix.package }}/*.pkg.tar.*; do bsdtar -xf "$p" -C out; done
+          find out -name '*.dll' -exec cp {} out/ \;
+      - name: Check DllCharacteristics
+        shell: pwsh
+        run: |
+          $bad = 0
+          foreach ($dll in Get-ChildItem out -Filter *.dll) {
+            $b = [IO.File]::ReadAllBytes($dll.FullName)
+            $dc = [BitConverter]::ToUInt16($b, [BitConverter]::ToInt32($b, 0x3C) + 94)
+            '{0,-24} DllCharacteristics 0x{1:X4} dynamicbase={2}' -f $dll.Name, $dc, [bool]($dc -band 0x40)
+            if (-not ($dc -band 0x40)) { $bad++ }
+          }
+          if ($bad) { throw "$bad DLL(s) without dynamicbase" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package }}-dynamicbase
+          path: out/*.dll
