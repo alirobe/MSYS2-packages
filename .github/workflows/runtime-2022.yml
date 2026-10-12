@@ -23,7 +23,10 @@ jobs:
           update: true
           install: base-devel msys2-devel git
       - name: Build
+        env:
+          MSYS: winsymlinks:native
         run: |
+          git config --global user.email ci@example.com; git config --global user.name ci
           cd msys2-runtime
           makepkg --noconfirm --skippgpcheck --nocheck --syncdeps
           ls -la *.pkg.tar.*
