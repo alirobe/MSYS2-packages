@@ -19,22 +19,20 @@ die "Could not remove previous patches"
 
 base_tag=refs/tags/cygwin-"$(sed -ne 's/^pkgver=//p' <PKGBUILD)"
 msys2_branch=refs/heads/msys2-${base_tag#refs/tags/cygwin-}
-url=https://github.com/msys2/msys2-runtime
+url=https://github.com/msys2/Cygwin
 
-test -d msys2-runtime || {
-	git clone --bare $url msys2-runtime &&
-	git --git-dir=msys2-runtime config remote.origin.url git://sourceware.org/git/newlib-cygwin.git # required by PKGBUILD
-} ||
+test -d msys2-runtime ||
+git clone --bare $url msys2-runtime ||
 die "Could not clone msys2-runtime"
 
-git --git-dir msys2-runtime fetch --no-tags $url $base_tag:$base_tag $msys2_branch:$msys2_branch
+git -C msys2-runtime fetch --no-tags $url $base_tag:$base_tag $msys2_branch:$msys2_branch
 
 git -c core.abbrev=7 \
 	-c diff.renames=true \
 	-c format.from=false \
 	-c format.numbered=auto \
 	-c format.useAutoBase=false \
-	--git-dir msys2-runtime \
+	-C msys2-runtime \
 	format-patch \
 		--no-signature \
 		--topo-order \
@@ -45,6 +43,7 @@ git -c core.abbrev=7 \
 		--no-thread \
 		--suffix=.patch \
 		--subject-prefix=PATCH \
+		--output-directory .. \
 		$base_tag..$msys2_branch \
 		-- ':(exclude).github/' ||
 die "Could not generate new patch set"
@@ -55,12 +54,14 @@ do
 	sed -i 's/^\(Subject: \[PATCH [0-9]*\/\)[1-9][0-9]*/\1N/' $p ||
 	die "Could not fix Subject: line in $p"
 done &&
-git --git-dir msys2-runtime rev-parse --verify $msys2_branch >msys2-runtime.commit &&
-git add $patches msys2-runtime.commit ||
+git add $patches ||
 die "Could not stage new patch set"
 
-in_patches="$(echo "$patches" | sed "{s/^/  /;:1;N;s/\\n/\\\\n  /;b1}")"
-sed -i -e "/^_patches=(/{:1;N;/[^)]$/b1;s|.*|_patches=(\\n$in_patches\\n)|}" PKGBUILD ||
+in_sources="$(echo "$patches" | sed "{s/^/        /;:1;N;s/\\n/\\\\n        /;b1}")"
+in_prepare="$(echo "$patches" | tr '\n' '\\' | sed -e 's/\\$//' -e 's/\\/ &&&n  /g')"
+sed -i -e "/^        0.*\.patch$/{:1;N;/[^)]$/b1;s|.*|$in_sources)|}" \
+	-e "/^ *apply_git_am_with_msg /{:2;N;/[^}]$/b2;s|.*| apply_git_am_with_msg $in_prepare\\n\\}|}" \
+	PKGBUILD ||
 die "Could not update the patch set in PKGBUILD"
 
 if git rev-parse --verify HEAD >/dev/null &&
@@ -72,7 +73,6 @@ then
 	exit 0
 fi
 
-GIT_CONFIG_PARAMETERS="${GIT_CONFIG_PARAMETERS+$GIT_CONFIG_PARAMETERS }'core.autocrlf=false'" \
 updpkgsums ||
 die "Could not update the patch set checksums in PKGBUILD"
 
