@@ -32,8 +32,7 @@ jobs:
           mkdir -p out
           bsdtar -xf msys2-runtime/msys2-runtime-3.4.3-1-x86_64.pkg.tar.zst -C out usr/bin/msys-2.0.dll
           cp msys2-runtime/msys2-runtime-3.4.3-1-x86_64.pkg.tar.zst out/
-          python3 -c "
-import struct;b=open('out/usr/bin/msys-2.0.dll','rb').read();pe=struct.unpack_from('<I',b,0x3c)[0];c=struct.unpack_from('<H',b,pe+94)[0];print('DllCharacteristics 0x%04x dynamicbase=%s highentropy=%s'%(c,bool(c&0x40),bool(c&0x20)))"
+          python3 -c "import struct;b=open('out/usr/bin/msys-2.0.dll','rb').read();pe=struct.unpack_from('<I',b,0x3c)[0];c=struct.unpack_from('<H',b,pe+94)[0];print('DllCharacteristics 0x%04x dynamicbase=%s highentropy=%s'%(c,bool(c&0x40),bool(c&0x20)))"
       - uses: actions/upload-artifact@v4
         with:
           name: msys2-runtime-3.4.3-1-dec2022
