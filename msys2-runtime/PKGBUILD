@@ -24,7 +24,7 @@ makedepends=('cocom'
              'docbook-xsl')
 # re zipman: https://github.com/msys2/MSYS2-packages/pull/2687#issuecomment-965714874
 options=('!zipman')
-source=('msys2-runtime'::https://sourceware.org/git/newlib-cygwin.git#tag=cygwin-${pkgver}
+source=('msys2-runtime'::git+https://sourceware.org/git/newlib-cygwin.git#tag=cygwin-${pkgver}
         0001-Add-MSYS2-triplet.patch
         0002-Fix-msys-library-name-in-import-libraries.patch
         0003-Rename-dll-from-cygwin-to-msys.patch
