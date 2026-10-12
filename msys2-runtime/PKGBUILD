@@ -187,8 +187,10 @@ build() {
     OPTIM="-O2"
   fi
 
-  CFLAGS="$OPTIM -pipe -ggdb -Wno-error=deprecated -Wno-error=stringop-truncation -Wno-error=missing-attributes -Wno-error=maybe-uninitialized" #-Wno-error=class-memaccess
-  CXXFLAGS="$OPTIM -pipe -ggdb -Wno-error=deprecated -Wno-error=stringop-truncation -Wno-error=missing-attributes -Wno-error=maybe-uninitialized" #-Wno-error=class-memaccess
+  # GCC 14+ made these errors; the 2022 source predates that.
+  GCC15="-Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -Wno-error=declaration-missing-parameter-type -Wno-error=array-bounds -Wno-error=stringop-overflow -Wno-error=use-after-free -Wno-error=dangling-pointer -Wno-error=enum-int-mismatch -Wno-error=mismatched-new-delete"
+  CFLAGS="$OPTIM -pipe -ggdb -Wno-error=deprecated -Wno-error=stringop-truncation -Wno-error=missing-attributes -Wno-error=maybe-uninitialized $GCC15"
+  CXXFLAGS="$OPTIM -pipe -ggdb -Wno-error=deprecated -Wno-error=stringop-truncation -Wno-error=missing-attributes -Wno-error=maybe-uninitialized -fpermissive -std=gnu++17 $GCC15"
 
   (cd "${srcdir}/msys2-runtime/winsup" && ./autogen.sh)
 
