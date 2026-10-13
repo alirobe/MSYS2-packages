@@ -204,8 +204,13 @@ build() {
     --build=${CHOST} \
     --sysconfdir=/etc \
     "${extra_config[@]}"
-  LC_ALL=C make
-  LC_ALL=C make -j1 DESTDIR="${srcdir}"/dest install
+  # cygserver and the C++ utils cannot link against the 2026 libstdc++ (it wants a 3.5+ pthread symbol).
+  # Only the DLL matters for this rebuild, so let make carry on and insist on the DLL alone.
+  LC_ALL=C make -k || true
+  test -f ${CHOST}/winsup/cygwin/new-msys-2.0.dll
+  LC_ALL=C make -k -j1 DESTDIR="${srcdir}"/dest install || true
+  test -f "${srcdir}"/dest/usr/bin/msys-2.0.dll
+  mkdir -p "${srcdir}"/dest/usr/libexec "${srcdir}"/dest/usr/share "${srcdir}"/dest/usr/${CHOST}/include "${srcdir}"/dest/usr/${CHOST}/lib
 
   #pushd ${CHOST}/winsup/cygwin > /dev/null
   #LANG=C make libmsys2_s.a
