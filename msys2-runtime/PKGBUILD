@@ -138,6 +138,8 @@ prepare() {
   # Today's w32api headers already define these; the 2022 header predates that.
   sed -i -e '521,524d' -e '470,488d' winsup/cygwin/local_includes/ntdll.h
   grep -q FILE_STAT_INFORMATION winsup/cygwin/local_includes/ntdll.h && exit 1
+  # w32api 13 defines cmsghdr in mswsock.h; upstream's 2025-06-09 fix renames it around the include.
+  grep -rl '#include <w32api/mswsock.h>' winsup/cygwin | xargs sed -i     -e '/^#include <w32api\/mswsock.h>/i #undef cmsghdr'     -e '/^#include <w32api\/mswsock.h>/i #define cmsghdr __ms_cmsghdr'     -e '/^#include <w32api\/mswsock.h>/a #undef cmsghdr'
  apply_git_am_with_msg 0001-Add-MSYS2-triplet.patch \
   0002-Fix-msys-library-name-in-import-libraries.patch \
   0003-Rename-dll-from-cygwin-to-msys.patch \
