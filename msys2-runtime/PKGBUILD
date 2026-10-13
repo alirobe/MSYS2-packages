@@ -135,6 +135,9 @@ prepare() {
   fi
   del_file_exists winsup/cygwin/msys2_path_conv.cc \
     winsup/cygwin/msys2_path_conv.h
+  # Today's w32api headers already define these; the 2022 header predates that.
+  sed -i -e '521,524d' -e '470,488d' winsup/cygwin/local_includes/ntdll.h
+  grep -q FILE_STAT_INFORMATION winsup/cygwin/local_includes/ntdll.h && exit 1
  apply_git_am_with_msg 0001-Add-MSYS2-triplet.patch \
   0002-Fix-msys-library-name-in-import-libraries.patch \
   0003-Rename-dll-from-cygwin-to-msys.patch \
@@ -188,7 +191,7 @@ build() {
   fi
 
   # GCC 14+ made these errors; the 2022 source predates that.
-  GCC15="-Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -Wno-error=declaration-missing-parameter-type -Wno-error=array-bounds -Wno-error=stringop-overflow -Wno-error=use-after-free -Wno-error=dangling-pointer -Wno-error=enum-int-mismatch -Wno-error=mismatched-new-delete"
+  GCC15="-Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -Wno-error=declaration-missing-parameter-type -Wno-error=array-bounds -Wno-error=stringop-overflow -Wno-error=use-after-free -Wno-error=dangling-pointer -Wno-error=enum-int-mismatch -Wno-error=mismatched-new-delete -Wno-error=overloaded-virtual -Wno-error=cpp"
   CFLAGS="$OPTIM -pipe -ggdb -Wno-error=deprecated -Wno-error=stringop-truncation -Wno-error=missing-attributes -Wno-error=maybe-uninitialized $GCC15"
   CXXFLAGS="$OPTIM -pipe -ggdb -Wno-error=deprecated -Wno-error=stringop-truncation -Wno-error=missing-attributes -Wno-error=maybe-uninitialized -fpermissive -std=gnu++17 $GCC15"
 
